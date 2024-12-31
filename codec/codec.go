@@ -1,7 +1,6 @@
 package codec
 
 import (
-	"bytes"
 	"crypto/aes"
 	"crypto/cipher"
 	"crypto/md5"
@@ -9,12 +8,13 @@ import (
 	"crypto/rsa"
 	"crypto/sha256"
 	"crypto/x509"
+	"encoding/base32"
 	"encoding/base64"
 	"encoding/hex"
 	"errors"
+	"fmt"
 	"io"
 	"io/ioutil"
-	"os/exec"
 	"strings"
 )
 
@@ -161,22 +161,23 @@ func LoadFromFile(filename string) ([]byte, error) {
 }
 
 func Base32(cmd string, t string) (string, error) {
+	var result string
+	var err error
 
-	if t == "encode" {
-		command := exec.Command("sh", "-c", cmd)
-
-		var outBuf, errBuf bytes.Buffer
-		command.Stdout = &outBuf
-		command.Stderr = &errBuf
-
-		err := command.Run()
-		output := outBuf.String() + errBuf.String()
+	switch t {
+	case "encode":
+		// 使用标准的Base32编码
+		result = base32.StdEncoding.EncodeToString([]byte(cmd))
+	case "decode":
+		// 尝试解码Base32编码的字符串
+		decodedBytes, err := base32.StdEncoding.DecodeString(cmd)
 		if err != nil {
-			return output, err
+			return "", fmt.Errorf("decode error: %v", err)
 		}
-
-		return output, nil
+		result = string(decodedBytes)
+	default:
+		return "", fmt.Errorf("unknown operation: %s. Use 'encode' or 'decode'", t)
 	}
-	return "", errors.New("invalid command")
 
+	return result, err
 }
